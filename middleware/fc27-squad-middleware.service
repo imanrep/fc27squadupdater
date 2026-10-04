@@ -1,0 +1,16 @@
+[Unit]
+Description=FC27 Squad Middleware
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=imanrep
+WorkingDirectory=/opt/gopapi/middleware
+Environment=FC27_PORT=3033
+ExecStart=/usr/bin/python3 /opt/gopapi/middleware/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

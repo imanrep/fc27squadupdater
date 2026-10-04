@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Build output
+*.elf
+src/web_ui.h
+middleware/fc27-squad-middleware.service
+middleware/fc27.imanrep.tech.nginx
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Local test / debug data
+/DATA*
+/Squads*
+/sdimg_*
+
+# Secrets
+*.pem
+*.key
+

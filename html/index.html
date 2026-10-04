@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FC27 Squad Updater</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #263a62, #08101e 65%);
+      color: #f8fafc;
+      font: 20px Arial, sans-serif;
+      display: grid;
+      place-items: center;
+    }
+
+    #updater-app {
+      width: min(900px, 90vw);
+      text-align: center;
+    }
+
+    #updater-app>img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 14px 0 36px;
+      font-size: 38px;
+    }
+
+    #panel {
+      margin-top: 150px;
+      padding: 32px;
+      background: rgba(3, 9, 20, .84);
+      border: 1px solid #3b82f6;
+      border-radius: 14px;
+      box-shadow: 0 18px 55px #0008;
+    }
+
+    #status {
+      min-height: 32px;
+      margin: 0 0 20px;
+      color: #dbeafe;
+    }
+
+    progress {
+      width: 100%;
+      height: 24px;
+      accent-color: #2563eb;
+    }
+
+    #percent {
+      margin: 14px 0 0;
+      font-weight: bold;
+    }
+
+    #hint,
+    #force-hint {
+      margin-top: 22px;
+      color: #94a3b8;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    #hint img,
+    #force-hint img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    #force-hint[hidden] {
+      display: none;
+    }
+
+    #force-button {
+      margin-top: 14px;
+      padding: 12px 22px;
+      border: 1px solid #60a5fa;
+      border-radius: 8px;
+      background: #1d4ed8;
+      color: #fff;
+      font: inherit;
+    }
+
+    #force-button[hidden] {
+      display: none;
+    }
+
+    #missing-save-app {
+      width: min(1120px, 94vw);
+      padding: 32px 0;
+    }
+
+    .guide-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .guide-badge {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 12px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #a855f7aa;
+      border-radius: 16px;
+      background: #050914;
+      box-shadow: 0 0 30px #8a3ffc44;
+      color: #d8b4fe;
+      font-size: 38px;
+      font-weight: 900;
+      font-style: italic;
+    }
+
+    .guide-header h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+    }
+
+    .guide-header p {
+      margin: 8px 0 0;
+      color: #94a3b8;
+      font-size: 15px;
+    }
+
+    .guide-card {
+      padding: 24px;
+      border: 1px solid #38bdf84d;
+      border-radius: 20px;
+      background: #050c19e8;
+      box-shadow: 0 0 28px #1d8cf833, inset 0 1px #ffffff0d;
+    }
+
+    .guide-alert {
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border: 1px solid #c084fc80;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #6d28d933, #0f172a33);
+      color: #e9d5ff;
+      font-size: 15px;
+    }
+
+    .guide-steps {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.5fr);
+      gap: 18px;
+    }
+
+    .guide-step {
+      overflow: hidden;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      background: #0f172acc;
+    }
+
+    .guide-step-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 13px 15px;
+      border-bottom: 1px solid #1e293b;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .guide-number {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: #0284c7;
+      font-size: 12px;
+    }
+
+    .guide-number.teal {
+      background: #0f766e;
+    }
+
+    .guide-number.purple {
+      background: #9333ea;
+    }
+
+    .guide-image {
+      width: 100%;
+      display: block;
+      background: #020617;
+      object-fit: cover;
+    }
+
+    .guide-image.small {
+      max-height: 270px;
+      object-fit: contain;
+    }
+
+    .guide-copy {
+      padding: 13px 15px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .guide-action {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 15px;
+      border-top: 1px solid #1e293b;
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .guide-footer {
+      margin-top: 18px;
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .guide-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-card {
+        padding: 14px;
+      }
+    }
+
+    .guide-header>img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <main id="missing-save-app" hidden>
+    <header class="guide-header">
+      <img src="/logo.svg" alt="FC27">
+      <h1>FC27 Squad Updater</h1>
+    </header>
+    <section class="guide-card">
+      <div class="guide-alert" data-i18n="no_save_found"></div>
+      <div class="guide-steps">
+        <article class="guide-step">
+          <div class="guide-step-title" data-i18n="step1_title"></div>
+          <img class="guide-image small" src="/setting.png" alt="FC27 settings menu">
+          <p class="guide-copy" data-i18n="step1_copy"></p>
+        </article>
+        <article class="guide-step">
+          <div class="guide-step-title" data-i18n="step2_title"></div>
+          <img class="guide-image" src="/save.jpg" alt="FC27 squads menu">
+          <div class="guide-copy" data-i18n="step2_copy"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <main id="updater-app">
+    <img src="/logo.svg" alt="FC27">
+    <h1>FC27 Squad Updater</h1>
+    <section id="panel">
+      <p id="status" data-i18n="checking"></p>
+      <progress id="progress" value="0" max="100"></progress>
+      <p id="percent">0%</p>
+    </section>
+    <p id="hint"><span data-i18n="press"></span> <img src="/circle.png" alt="O"> <span data-i18n="to_exit"></span></p>
+    <p id="force-hint" hidden><span data-i18n="press"></span> <img src="/square.png" alt="Square"> <span
+        data-i18n="to_force"></span></p>
+    <button id="force-button" type="button" hidden data-i18n="force_update"></button>
+  </main>
+  <script>
+    const MIDDLEWARE = 'https://fc27.imanrep.tech';
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const percent = document.getElementById('percent');
+    const forceHint = document.getElementById('force-hint');
+    const forceButton = document.getElementById('force-button');
+    const missingSaveApp = document.getElementById('missing-save-app');
+    const updaterApp = document.getElementById('updater-app');
+    const missingSave = new URLSearchParams(location.search).has('missing-save');
+    missingSaveApp.hidden = !missingSave;
+    updaterApp.hidden = missingSave;
+
+    const STRINGS = {
+      en: {
+        no_save_found: "No squad save was found. Follow these steps in FC27, then run FC27 again.",
+        step1_title: "1. Open Settings",
+        step1_copy: "From the FC27 home screen, open the Settings gear in the left-side utility menu.",
+        step2_title: "2. Select Squads",
+        step2_copy: "3. Select Save Squads Button > confirm > and restart FC27",
+        press: "Press",
+        to_exit: "to exit",
+        to_force: "to force update",
+        force_update: "Force update",
+        checking: "Checking for updates...",
+        already_updated_force: "Already updated. Press Square to force update.",
+        already_updated: "Already updated.",
+        downloading: "Downloading latest squads...",
+        squad_download_failed: "Squad download failed",
+        reading_save: "Reading save data...",
+        could_not_read_data: "Could not read DATA",
+        building: "Building squad update...",
+        saving: "Saving squad update...",
+        local_save_failed: "Local save failed",
+        open_fc27: "Please open FC27 now.",
+        update_failed: "Update failed: ",
+        save_type_not_found: "SaveType_Squads not found",
+        db_marker_not_found: "DB marker not found"
+      },
+      id: {
+        no_save_found: "Simpanan squad tidak ditemukan. Ikuti langkah berikut di FC27, lalu jalankan FC27 lagi.",
+        step1_title: "1. Buka Pengaturan",
+        step1_copy: "Dari layar utama FC27, buka ikon Pengaturan di menu atas kiri.",
+        step2_title: "2. Pilih Squad",
+        step2_copy: "3. Pilih tombol Simpan Squad > konfirmasi > lalu mulai ulang FC27",
+        press: "Tekan",
+        to_exit: "untuk keluar",
+        to_force: "untuk paksa update",
+        force_update: "Paksa update",
+        checking: "Memeriksa pembaruan...",
+        already_updated_force: "Sudah diperbarui. Tekan Kotak untuk paksa perbarui.",
+        already_updated: "Sudah diperbarui.",
+        downloading: "Mengunduh squad terbaru...",
+        squad_download_failed: "Unduhan squad gagal",
+        reading_save: "Membaca data penyimpanan...",
+        could_not_read_data: "Tidak dapat membaca DATA",
+        building: "Menyusun pembaruan squad...",
+        saving: "Menyimpan pembaruan squad...",
+        local_save_failed: "Penyimpanan lokal gagal",
+        open_fc27: "Silakan buka FC27 sekarang.",
+        update_failed: "Pembaruan gagal: ",
+        save_type_not_found: "SaveType_Squads tidak ditemukan",
+        db_marker_not_found: "Penanda DB tidak ditemukan"
+      }
+    };
+
+    let lang = 'en';
+    function t(key) {return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.en[key] || key;}
+
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const value = t(key);
+        if (el.hasAttribute('data-i18n-html')) el.innerHTML = value;
+        else el.textContent = value;
+      });
+    }
+
+    async function loadLanguage() {
+      try {
+        const code = (await fetch('/api/lang').then(response => response.text())).trim();
+        if (code === 'id') lang = 'id';
+      } catch (error) { }
+      applyI18n();
+    }
+
+    function setProgress(value, text) {progress.value = value; percent.textContent = value + '%'; status.textContent = text;}
+    function closeSoon(ms) {setTimeout(() => window.close(), ms);}
+    async function readWithProgress(response, start, end, text) {
+      const total = Number(response.headers.get('Content-Length'));
+      if (!response.body || !Number.isFinite(total) || total <= 0)
+        return new Uint8Array(await response.arrayBuffer());
+
+      const reader = response.body.getReader();
+      const chunks = [];
+      let loaded = 0;
+      for (; ;) {
+        const next = await reader.read();
+        if (next.done) break;
+        chunks.push(next.value);
+        loaded += next.value.length;
+        setProgress(start + Math.floor((end - start) * loaded / total), text);
+      }
+      const result = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return result;
+    }
+    function uploadWithProgress(data, version) {
+      return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('POST', '/api/data');
+        if (version) request.setRequestHeader('X-FC27-Version', version);
+        request.upload.onprogress = event => {
+          if (event.lengthComputable)
+            setProgress(75 + Math.floor(24 * event.loaded / event.total), t('saving'));
+        };
+        request.onload = () => request.status >= 200 && request.status < 300
+          ? resolve()
+          : reject(new Error(t('local_save_failed')));
+        request.onerror = () => reject(new Error(t('local_save_failed')));
+        request.send(data);
+      });
+    }
+    function findBytes(data, needle, start = 0) {
+      outer: for (let i = start; i <= data.length - needle.length; ++i) {
+        for (let j = 0; j < needle.length; ++j) if (data[i + j] !== needle[j]) continue outer;
+        return i;
+      }
+      return -1;
+    }
+
+    function clearSquadVersion(data) {
+      const saveType = new Uint8Array([
+        0x53, 0x61, 0x76, 0x65, 0x54, 0x79, 0x70, 0x65,
+        0x5F, 0x53, 0x71, 0x75, 0x61, 0x64, 0x73, 0x00
+      ]);
+      const position = findBytes(data, saveType);
+      if (position < 0 || position + saveType.length + 4 > data.length)
+        throw new Error(t('save_type_not_found'));
+      data.fill(0, position + saveType.length, position + saveType.length + 4);
+    }
+
+    function replaceSquadDatabase(data, downloadedSquads) {
+      const db = new Uint8Array([0x44, 0x42]);
+      const dataDbPos = findBytes(data, db);
+      const squadsDbPos = findBytes(downloadedSquads, db);
+      if (dataDbPos < 0 || squadsDbPos < 0)
+        throw new Error(t('db_marker_not_found'));
+
+      const copiedSquads = downloadedSquads.subarray(squadsDbPos);
+      const patched = new Uint8Array(dataDbPos + copiedSquads.length);
+      patched.set(data.subarray(0, dataDbPos));
+      patched.set(copiedSquads, dataDbPos);
+      return patched;
+    }
+
+    function waitForSquare() {
+      forceHint.hidden = false;
+      forceButton.hidden = false;
+      return new Promise(resolve => {
+        let released = false;
+        let finished = false;
+        const finish = value => {
+          if (finished) return;
+          finished = true;
+          forceHint.hidden = true;
+          forceButton.hidden = true;
+          forceButton.onclick = null;
+          window.removeEventListener('keydown', onKeyDown);
+          resolve(value);
+        };
+        const onKeyDown = event => {
+          if (event.key === 'Square' || event.code === 'KeyS') {
+            event.preventDefault();
+            finish(true);
+          }
+        };
+        forceButton.onclick = () => finish(true);
+        window.addEventListener('keydown', onKeyDown);
+        const poll = () => {
+          if (finished) return;
+          const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+          const pressed = Array.from(pads).some(pad => pad && pad.buttons[2] && pad.buttons[2].pressed);
+          if (!pressed) released = true;
+          if (released && pressed) {
+            finish(true);
+            return;
+          }
+          setTimeout(poll, 50);
+        };
+        poll();
+        setTimeout(() => finish(false), 110000);
+      });
+    }
+
+    async function update(force = false) {
+      try {
+        forceHint.hidden = true;
+        forceButton.hidden = true;
+        let currentVersion = '';
+        try {currentVersion = (await fetch('/api/version').then(response => response.text())).trim();} catch (error) { }
+        setProgress(5, t('checking'));
+        const check = await fetch(MIDDLEWARE + '/v1/squads/check', {
+          headers: {'X-FC27-Version': currentVersion},
+          cache: 'no-store',
+        }).then(response => response.json());
+        if (!check.update && !force) {
+          setProgress(100, t('already_updated_force'));
+          if (await waitForSquare()) {
+            update(true);
+            return;
+          }
+          await fetch('/api/no-update', {method: 'POST'});
+          setProgress(100, t('already_updated'));
+          return;
+        }
+
+        setProgress(10, t('downloading'));
+        const download = await fetch(MIDDLEWARE + '/v1/squads/download?nonce=' + Date.now(), {cache: 'no-store'});
+        if (!download.ok) throw new Error(t('squad_download_failed'));
+        const version = download.headers.get('X-FC27-Version') || '';
+        const downloadedSquads = await readWithProgress(download, 10, 45, t('downloading'));
+
+        setProgress(45, t('reading_save'));
+        const dataResponse = await fetch('/api/data');
+        if (!dataResponse.ok) throw new Error(t('could_not_read_data'));
+        const data = await readWithProgress(dataResponse, 45, 70, t('reading_save'));
+        setProgress(72, t('building'));
+        clearSquadVersion(data);
+        const patched = replaceSquadDatabase(data, downloadedSquads);
+
+        setProgress(75, t('saving'));
+        await uploadWithProgress(patched, version);
+        setProgress(100, t('open_fc27'));
+        closeSoon(5000);
+      } catch (error) {
+        setProgress(0, t('update_failed') + error.message);
+      }
+    }
+
+    (async () => {
+      await loadLanguage();
+      if (!missingSave) update();
+    })();
+  </script>
+</body>
+
+</html>

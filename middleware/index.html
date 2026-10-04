@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FC27 Squad Updater</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top, #263a62, #08101e 65%); color: #f8fafc; font: 20px Arial, sans-serif; display: grid; place-items: center; }
+    main { width: min(900px, 90vw); text-align: center; }
+    img { width: 112px; height: 112px; object-fit: contain; }
+    h1 { margin: 14px 0 36px; font-size: 38px; }
+    #panel { padding: 32px; background: rgba(3, 9, 20, .84); border: 1px solid #3b82f6; border-radius: 14px; box-shadow: 0 18px 55px #0008; }
+    #status { min-height: 32px; margin: 0 0 20px; color: #dbeafe; }
+    progress { width: 100%; height: 24px; accent-color: #2563eb; }
+    #percent { margin: 14px 0 0; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/logo.svg" alt="FC27">
+    <h1>FC27 Squad Updater</h1>
+    <section id="panel">
+      <p id="status">Checking for updates...</p>
+      <progress id="progress" value="0" max="100"></progress>
+      <p id="percent">0%</p>
+    </section>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const current = params.get('version') || '';
+    const session = params.get('session') || '';
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const percent = document.getElementById('percent');
+    function setProgress(value, text) { progress.value = value; percent.textContent = value + '%'; status.textContent = text; }
+
+    async function update() {
+      try {
+        setProgress(10, 'Checking for updates...');
+        const response = await fetch('/v1/squads/check', { headers: { 'X-FC27-Version': current } });
+        const result = await response.json();
+        if (!result.update) {
+          setProgress(100, 'Already up to date.');
+          setTimeout(() => window.close(), 3000);
+          return;
+        }
+        setProgress(30, 'Updating squads...');
+        const timer = setInterval(async () => {
+          try {
+            const state = (await fetch('/v1/squads/status?session=' + encodeURIComponent(session)).then(r => r.text())).trim();
+            status.textContent = state;
+            if (state === 'Patching squads') setProgress(60, state);
+            if (state === 'Squad update complete') { setProgress(100, state); clearInterval(timer); setTimeout(() => window.close(), 1500); }
+            if (state === 'Update failed') { clearInterval(timer); setProgress(0, state); }
+          } catch (e) { }
+        }, 800);
+      } catch (error) {
+        setProgress(0, 'Update failed: ' + error.message);
+      }
+    }
+    update();
+  </script>
+</body>
+</html>
