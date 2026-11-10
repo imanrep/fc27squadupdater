@@ -431,6 +431,32 @@ static bool load_file(const char *path, uint8_t **out, size_t *out_size) {
   return true;
 }
 
+static bool is_version_marker_name(const char *name) {
+  return strncmp(name, "Squads", 6) == 0 &&
+         strchr(name, '.') == NULL &&
+         strchr(name, '/') == NULL;
+}
+
+static void prune_old_version_markers(const char *keep_version) {
+  if (!keep_version[0])
+    return;
+  DIR *directory = opendir(STATE_DIR);
+  if (!directory)
+    return;
+  struct dirent *entry;
+  while ((entry = readdir(directory)) != NULL) {
+    if (is_version_marker_name(entry->d_name) &&
+        strcmp(entry->d_name, keep_version) != 0) {
+      char old_marker[1024];
+      int written = snprintf(old_marker, sizeof(old_marker), "%s/%s",
+                             STATE_DIR, entry->d_name);
+      if (written > 0 && (size_t)written < sizeof(old_marker))
+        (void)unlink(old_marker);
+    }
+  }
+  closedir(directory);
+}
+
 static void read_current_version(char *version, size_t version_size) {
   version[0] = '\0';
   DIR *directory = opendir(STATE_DIR);
@@ -438,13 +464,28 @@ static void read_current_version(char *version, size_t version_size) {
     return;
   struct dirent *entry;
   while ((entry = readdir(directory)) != NULL) {
-    if (strncmp(entry->d_name, "Squads", 6) == 0 &&
-        strchr(entry->d_name, '.') == NULL) {
+    if (is_version_marker_name(entry->d_name) &&
+        (version[0] == '\0' || strcmp(entry->d_name, version) > 0)) {
       snprintf(version, version_size, "%s", entry->d_name);
-      break;
     }
   }
   closedir(directory);
+  prune_old_version_markers(version);
+}
+
+static void write_current_version(const char *version) {
+  if (!is_version_marker_name(version))
+    return;
+
+  char marker[1024];
+  int written = snprintf(marker, sizeof(marker), "%s/%s", STATE_DIR, version);
+  if (written <= 0 || (size_t)written >= sizeof(marker))
+    return;
+  int marker_fd = open(marker, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+  if (marker_fd < 0)
+    return;
+  close(marker_fd);
+  prune_old_version_markers(version);
 }
 
 static bool read_mount_data(uint8_t **out, size_t *out_size) {
@@ -830,11 +871,7 @@ static void run_squad_update(pid_t game_pid) {
   }
 
   if (pending_version[0]) {
-    char marker[1024];
-    snprintf(marker, sizeof(marker), "%s/%s", STATE_DIR, pending_version);
-    int marker_fd = open(marker, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if (marker_fd >= 0)
-      close(marker_fd);
+    write_current_version(pending_version);
   }
 
   show_popup(tr("Squad update complete. Restart FC27 to apply the patch.",
